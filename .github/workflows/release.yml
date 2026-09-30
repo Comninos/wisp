@@ -1,0 +1,31 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            bin: target/release/wisp
+            asset: wisp-linux-x86_64
+          - os: windows-latest
+            bin: target/release/wisp.exe
+            asset: wisp-windows-x86_64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: cargo build --release
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp "${{ matrix.bin }}" "${{ matrix.asset }}"
+          gh release create "${{ github.ref_name }}" --generate-notes || true
+          gh release upload "${{ github.ref_name }}" "${{ matrix.asset }}" --clobber
