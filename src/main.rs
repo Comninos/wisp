@@ -14,7 +14,7 @@ const FONTS: std::ops::RangeInclusive<f32> = 8.0..=48.0;
 const STEP: f32 = 2.0;
 const BAR: f32 = 12.0;
 const HELP_FONT: f32 = BAR + 2.0;
-const SIZE: [f32; 2] = [480.0, 640.0];
+const SIZE: [f32; 2] = [420.0, 560.0];
 const START: Theme = Theme::Light;
 const DIM: Color32 = Color32::GRAY;
 const GAP: usize = 2;
@@ -97,7 +97,8 @@ impl eframe::App for Wisp {
         Panel::bottom("bar").show(ui, |ui| self.bar(ui));
         CentralPanel::default().show(ui, |ui| {
             if self.help {
-                help(ui);
+                let margin = self.gutter(ui).1;
+                help(ui, margin);
             } else {
                 self.pad(ui);
             }
@@ -170,17 +171,23 @@ impl Wisp {
         });
     }
 
+    // Widths of the line numbers and of the whole gutter, at the pad's font size.
+    fn gutter(&self, ui: &Ui) -> (f32, f32) {
+        let digits = self.text.split('\n').count().to_string().len().max(2);
+        let font = FontId::monospace(self.size);
+        let glyph = ui.ctx().fonts_mut(|f| f.glyph_width(&font, '0'));
+        (digits as f32 * glyph, (digits + GAP) as f32 * glyph)
+    }
+
     fn pad(&mut self, ui: &mut Ui) {
         let font = FontId::monospace(self.size);
-        let digits = self.text.split('\n').count().to_string().len().max(2);
-        let glyph = ui.ctx().fonts_mut(|f| f.glyph_width(&font, '0'));
+        let (numbers, inset) = self.gutter(ui);
         let height = ui.available_height();
         let fg = ui.visuals().text_color();
 
         ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
             ui.horizontal_top(|ui| {
-                let right = ui.cursor().min.x + digits as f32 * glyph;
-                let inset = (digits + GAP) as f32 * glyph;
+                let right = ui.cursor().min.x + numbers;
                 ui.add_space(inset);
                 let id = Id::new("pad");
                 if ui.ctx().memory(|m| m.focused().is_none()) {
@@ -194,6 +201,7 @@ impl Wisp {
                     .font(font.clone())
                     .layouter(&mut layouter)
                     .frame(Frame::NONE)
+                    .margin(0.0)
                     .desired_width(ui.available_width() - inset)
                     .min_size(vec2(0.0, height))
                     .lock_focus(true)
@@ -248,18 +256,24 @@ fn wrap(ui: &Ui, text: &str, font: &FontId, color: Color32, width: f32) -> Arc<G
     layout(chars.into_iter().collect(), width + hang)
 }
 
-fn help(ui: &mut Ui) {
+fn help(ui: &mut Ui, margin: f32) {
     let font = FontId::monospace(HELP_FONT);
     let text = |s: &str| Label::new(RichText::new(s).font(font.clone())).selectable(false);
     let glyph = ui.ctx().fonts_mut(|f| f.glyph_width(&font, '0'));
     let longest = HELP.iter().map(|(key, _)| key.chars().count()).max().unwrap_or(0);
     let column = (longest + GAP) as f32 * glyph;
-    ui.spacing_mut().item_spacing.y = 8.0;
-    for (key, action) in HELP {
-        ui.horizontal_top(|ui| {
-            let used = ui.add(text(key)).rect.width();
-            ui.add_space(column - used);
-            ui.add(text(action).wrap());
+    ui.horizontal_top(|ui| {
+        ui.add_space(margin);
+        ui.vertical(|ui| {
+            ui.set_max_width(ui.available_width() - margin);
+            ui.spacing_mut().item_spacing.y = 8.0;
+            for (key, action) in HELP {
+                ui.horizontal_top(|ui| {
+                    let used = ui.add(text(key)).rect.width();
+                    ui.add_space(column - used);
+                    ui.add(text(action).wrap());
+                });
+            }
         });
-    }
+    });
 }
