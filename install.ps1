@@ -6,8 +6,10 @@
 $ErrorActionPreference = 'Stop'
 
 $url = 'https://github.com/Comninos/wisp/releases/latest/download/wisp-windows-x86_64.exe'
+$iconUrl = 'https://raw.githubusercontent.com/Comninos/wisp/master/icon/wisp.ico'
 $dir = Join-Path $env:LOCALAPPDATA 'Programs\wisp'
 $exe = Join-Path $dir 'wisp.exe'
+$ico = Join-Path $dir 'wisp.ico'
 $here = $PSScriptRoot
 
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -23,9 +25,21 @@ if ($here -and (Test-Path (Join-Path $here 'Cargo.toml'))) {
 }
 Write-Host "installed $exe"
 
+try {
+    $local = if ($here) { Join-Path $here 'icon\wisp.ico' }
+    if ($local -and (Test-Path $local)) {
+        Copy-Item $local $ico -Force
+    } else {
+        Invoke-WebRequest $iconUrl -OutFile $ico -UseBasicParsing
+    }
+} catch {
+    Write-Warning 'could not fetch the icon; the shortcut will use a generic one'
+}
+
 $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'wisp.lnk'
 $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
 $shortcut.TargetPath = $exe
+if (Test-Path $ico) { $shortcut.IconLocation = "$ico,0" }
 $shortcut.Save()
 Write-Host "added Start Menu shortcut $lnk"
 

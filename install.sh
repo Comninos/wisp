@@ -8,6 +8,7 @@
 set -euo pipefail
 
 RELEASE_URL="${WISP_RELEASE_URL:-https://github.com/Comninos/wisp/releases/latest/download/wisp-linux-x86_64}"
+ICON_URL="${WISP_ICON_URL:-https://raw.githubusercontent.com/Comninos/wisp/master/icon/wisp.svg}"
 SYSTEM="${WISP_SYSTEM:-0}"
 
 say() { printf '%s\n' "$*"; }
@@ -21,7 +22,7 @@ Usage: install.sh [options]
   --system     Install to /usr/local (requires root)
   -h, --help   Show this help
 
-Env: WISP_SYSTEM=1  WISP_RELEASE_URL=<url>
+Env: WISP_SYSTEM=1  WISP_RELEASE_URL=<url>  WISP_ICON_URL=<url>
 EOF
 }
 
@@ -63,6 +64,15 @@ fetch_binary() {
     curl -fsSL "$RELEASE_URL" -o "$dest"
 }
 
+fetch_icon() {
+    local dest="$1"
+    if [[ -n "$here" && -f "${here}/icon/wisp.svg" ]]; then
+        cp "${here}/icon/wisp.svg" "$dest"
+        return
+    fi
+    curl -fsSL "$ICON_URL" -o "$dest"
+}
+
 if [[ "$SYSTEM" == "1" ]]; then
     [[ "$(id -u)" -eq 0 ]] || die "--system / WISP_SYSTEM=1 requires root (try sudo)"
     prefix="/usr/local"
@@ -71,6 +81,7 @@ else
 fi
 bin_path="${prefix}/bin/wisp"
 desktop_path="${prefix}/share/applications/wisp.desktop"
+icon_dir="${prefix}/share/icons/hicolor/scalable/apps"
 
 say ""
 say "Install wisp to ${bin_path}"
@@ -83,12 +94,21 @@ mkdir -p "${prefix}/bin" "${prefix}/share/applications"
 install -m 0755 "$tmp" "$bin_path"
 say "installed ${bin_path}"
 
+mkdir -p "$icon_dir"
+if fetch_icon "$tmp"; then
+    install -m 0644 "$tmp" "${icon_dir}/wisp.svg"
+    say "installed ${icon_dir}/wisp.svg"
+else
+    warn "could not fetch the icon; the launcher will use a generic one"
+fi
+
 cat >"$desktop_path" <<EOF
 [Desktop Entry]
 Type=Application
 Name=wisp
 Comment=Scratch pad that never saves
 Exec=${bin_path}
+Icon=wisp
 Terminal=false
 Categories=Utility;TextEditor;
 StartupWMClass=wisp

@@ -19,6 +19,7 @@ const START: Theme = Theme::Light;
 const DIM: Color32 = Color32::GRAY;
 const GAP: usize = 2;
 const TYPEFACE: &[u8] = include_bytes!("../fonts/IBMPlexMono-Regular.ttf");
+const ICON: &[u8] = include_bytes!("../icon/wisp.png");
 
 const HELP: &[(&str, &str)] = &[
     ("Ctrl Shift C", "copy the whole pad"),
@@ -31,11 +32,14 @@ const HELP: &[(&str, &str)] = &[
     ("F1 / Esc", "back to the pad"),
 ];
 
+// Wayland ignores window icons; there the compositor takes Icon= from wisp.desktop via the app id.
 fn main() -> eframe::Result {
+    let icon = eframe::icon_data::from_png_bytes(ICON).expect("icon/wisp.png is a valid PNG");
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_title("wisp")
             .with_app_id("wisp")
+            .with_icon(icon)
             .with_inner_size(SIZE)
             .with_always_on_top(),
         ..Default::default()

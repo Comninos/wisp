@@ -57,4 +57,4 @@ From a clone, `./install.sh` or `.\install.ps1` builds from source (needs [Rust]
 
 ## License
 
-Code: [MIT](LICENSE). IBM Plex Mono: [SIL OFL 1.1](fonts/OFL.txt).
+Code: [MIT](LICENSE). IBM Plex Mono: [SIL OFL 1.1](fonts/OFL.txt). Icon glyph from [Lucide](https://lucide.dev): [ISC](icon/LICENSE).
